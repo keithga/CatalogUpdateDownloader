@@ -196,7 +196,7 @@ function Find-CatalogUpdate
     $UrlBuilder = [System.Text.StringBuilder]::new("https://www.catalog.update.microsoft.com/Search.aspx?q=")
     if ($SearchText)
     {
-        $null = $UrlBuilder.Append($SearchText)
+        $null = $UrlBuilder.Append([System.Uri]::EscapeDataString($SearchText))
     }
     else
     {
@@ -307,6 +307,7 @@ function Find-CatalogUpdate
 
         $Document = [HtmlAgilityPack.HtmlDocument]::new()
         $Document.LoadHtml($Response.Content)
+        $Document.GetElementbyId('ctl00_catalogBody_searchString').InnerText.ToString() | write-verbose
         $Table = $Document.GetElementbyId('ctl00_catalogBody_updateMatches')
         if ($null -eq $Table)
         {
