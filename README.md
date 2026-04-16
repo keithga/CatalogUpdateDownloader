@@ -65,3 +65,17 @@ Sha1         : BA8E26DCEDEE8A76399125CFFE757729ED36126C
 Sha256       : 7DC58FAE1D771C34570FA13A0CCA6C685D7C94A942675A863647D9D3F9F53CB0
 IsPrimary    : True
 ```
+
+### Find and list update details from the catalog details page
+```powershell
+PS C:\> Find-CatalogUpdate -UpdateKind MSRT -OperatingSystem Windows11 -SortBy Date -Descending -First 1 | Get-CatalogUpdateDetails
+
+Title          : Windows Malicious Software Removal Tool - v5.135 (KB890830)
+LastModified   : 8/12/2025 12:00:00 AM
+Size           : 82.4 MB
+Architecture   : X86
+Classification : Update Rollups
+UpdateId       : c9b07798-a1a6-43ae-b1ee-cae3f691504c
+```
+
+Use `Get-CatalogUpdateDetails` for update metadata shown on the catalog details page, and `Get-CatalogUpdateDownloadInfo` when you need download URLs and file hashes.

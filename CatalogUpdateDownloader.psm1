@@ -411,6 +411,62 @@ function Get-CatalogUpdateDownloadInfo
 
 <#
 .SYNOPSIS
+    Retrieves Microsoft Update Catalog details for the specified updates.
+
+.DESCRIPTION
+    Retrieves the metadata shown on the Microsoft Update Catalog details page for the specified updates.
+
+.EXAMPLE
+    Find-CatalogUpdate -UpdateKind MSRT -OperatingSystem Windows11 -SortBy Date -Descending -First 1 | Get-CatalogUpdateDetails
+    Finds the most recent MSRT update and retrieves the details shown in the catalog details page.
+
+.PARAMETER UpdateId
+    The ID of the update to get details for. The ID can be found with Find-CatalogUpdate.
+#>
+function Get-CatalogUpdateDetails
+{
+    [OutputType([CatalogUpdateDetails])]
+    Param
+    (
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+        [string[]]
+        $UpdateId
+    )
+    Process
+    {
+        $RequestParams = @{
+            UseBasicParsing = $true
+            Headers         = @{
+                "accept-language" = "en-US;q=0.8,en;q=0.7"
+            }
+        }
+
+        foreach ($ID in $UpdateId)
+        {
+            try
+            {
+                $Response = Invoke-WebRequest @RequestParams -Uri "https://www.catalog.update.microsoft.com/ScopedViewInline.aspx?updateid=$ID" -ErrorAction Stop
+            }
+            catch
+            {
+                Write-Error -Message "Failed to retrieve update details for update: $ID. $($_.Exception.Message)"
+                continue
+            }
+
+            $Details = ParseCatalogUpdateDetailsResponse -Content $Response.Content -ID $ID
+            if ($null -eq $Details)
+            {
+                Write-Error -Message "Failed to find update details for update: $ID"
+                continue
+            }
+
+            $Details
+        }
+    }
+}
+
+<#
+.SYNOPSIS
     Downloads the specified update IDs to the specified folder.
 
 .DESCRIPTION
@@ -481,6 +537,324 @@ function Save-CatalogUpdate
 #endregion
 
 #region Private functions
+
+function ParseCatalogUpdateDetailsResponse
+{
+    [OutputType([CatalogUpdateDetails])]
+    param
+    (
+        [Parameter(Mandatory)]
+        [string]
+        $Content,
+
+        [Parameter(Mandatory)]
+        [string]
+        $ID
+    )
+
+    $Document = [HtmlAgilityPack.HtmlDocument]::new()
+    $Document.LoadHtml($Content)
+
+    $Title = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_titleText'
+    if ([string]::IsNullOrWhiteSpace($Title))
+    {
+        return $null
+    }
+
+    $LastModifiedText = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_date'
+    $LastModified = $null
+    if (![string]::IsNullOrWhiteSpace($LastModifiedText))
+    {
+        $ParsedDate = [datetime]::MinValue
+        if ([datetime]::TryParse($LastModifiedText, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::None, [ref]$ParsedDate))
+        {
+            $LastModified = $ParsedDate
+        }
+    }
+
+    $Size = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_size'
+
+    $ResolvedUpdateId = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_UpdateID'
+    if ([string]::IsNullOrWhiteSpace($ResolvedUpdateId))
+    {
+        $ResolvedUpdateId = $ID
+    }
+
+    $DriverClassDiv = GetCatalogValueFromSection -Document $Document -Id 'driverClassDiv'
+    if ( [string]::IsNullOrWhiteSpace($DriverClassDiv))
+    {
+        $DriverData = [ordered]@{}
+        $OSUpdateData = [ordered]@{
+        
+            # OS Updates
+            MsrcNumber                  = GetCatalogValueFromSection -Document $Document -Id 'securityBullitenDiv'
+            MsrcSeverity                = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_msrcSeverity'
+            KBArticleNumbers            = GetCatalogStringListFromSection -Document $Document -Id 'kbDiv'
+
+            SupersededBy                = GetCatalogItemsFromContainer -Document $Document -Id 'supersededbyInfo'
+            Supersedes                  = GetCatalogItemsFromContainer -Document $Document -Id 'supersedesInfo'
+            RelatedUpdates              = GetCatalogItemsFromContainer -Document $Document -Id 'relatedUpdatesInfo'
+        }        
+    }
+    else {
+        $DriverData = [ordered]@{
+
+            Company                     = GetCatalogValueFromSection -Document $Document -Id 'companyDiv'
+            DriverMfg                   = GetCatalogValueFromSection -Document $Document -Id 'manufacturerDiv'
+            DriverClass                 = GetCatalogValueFromSection -Document $Document -Id 'driverClassDiv'
+            DriverModel                 = GetCatalogValueFromSection -Document $Document -Id 'driverModelDiv'
+            DriverProvider              = GetCatalogValueFromSection -Document $Document -Id 'driverProviderDiv'
+            DriverVersion               = GetCatalogValueFromSection -Document $Document -Id 'VersionDiv'
+            VersionDate                 = GetCatalogValueFromSection -Document $Document -Id 'versionDateDiv'
+            SupportedHWIDs              = GetCatalogItemsFromContainer -Document $Document -Id 'driverhwIDs'
+        }
+        $OSUpdateData = [ordered]@{}
+    }
+
+    $BaseData = [ordered]@{
+        Title                       = $Title
+        LastModified                = $LastModified
+        Size                        = $Size
+        SizeBytes                   = ConvertCatalogSizeToBytes -Size $Size
+        UpdateId                    = $ResolvedUpdateId
+
+        Description                 = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_desc'
+        Architecture                = GetCatalogValueFromSection -Document $Document -Id 'archDiv'
+        Classification              = GetCatalogValueFromSection -Document $Document -Id 'classificationDiv'
+        SupportedProducts           = GetCatalogValuesFromSection -Document $Document -Id 'productsDiv'
+        SupportedLanguages          = GetCatalogValuesFromSection -Document $Document -Id 'languagesDiv'
+        Version                     = GetCatalogValueFromSection -Document $Document -Id 'versionDiv'
+
+        RestartBehavior             = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_rebootBehavior'
+        RequestsUserInput           = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_userInput'
+        ExclusiveInstall            = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_installationImpact'
+        RequiresNetworkConnectivity = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_connectivity'
+        UninstallNotes              = GetCatalogValueFromSection -Document $Document -Id 'uninstallNotesDiv'
+        UninstallSteps              = GetCatalogValueFromSection -Document $Document -Id 'uninstallStepsDiv'
+
+        MoreInformation             = GetCatalogLinksFromSection -Document $Document -Id 'moreInfoDiv'
+        SupportUrl                  = GetCatalogLinksFromSection -Document $Document -Id 'suportUrlDiv'
+
+    }
+
+    [PSCustomObject]($BaseData + $DriverData + $OSUpdateData)
+}
+
+function GetCatalogNodeText
+{
+    param
+    (
+        [Parameter(Mandatory)]
+        [HtmlAgilityPack.HtmlDocument]
+        $Document,
+
+        [Parameter(Mandatory)]
+        [string]
+        $Id
+    )
+
+    $Node = $Document.GetElementbyId($Id)
+    if ($null -eq $Node)
+    {
+        return $null
+    }
+
+    NormalizeCatalogText -Text $Node.InnerText
+}
+
+function GetCatalogValueFromSection
+{
+    param
+    (
+        [Parameter(Mandatory)]
+        [HtmlAgilityPack.HtmlDocument]
+        $Document,
+
+        [Parameter(Mandatory)]
+        [string]
+        $Id
+    )
+
+    $Node = $Document.GetElementbyId($Id)
+    if ($null -eq $Node)
+    {
+        return $null
+    }
+
+    $Value = NormalizeCatalogText -Text $Node.InnerText
+    $LabelNode = $Node.SelectSingleNode(".//*[contains(concat(' ', normalize-space(@class), ' '), ' labelTitle ')]")
+    if ($null -ne $LabelNode)
+    {
+        $Label = NormalizeCatalogText -Text $LabelNode.InnerText
+        if (![string]::IsNullOrWhiteSpace($Label) -and $Value.StartsWith($Label))
+        {
+            $Value = $Value.Substring($Label.Length).Trim()
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Value))
+    {
+        return $null
+    }
+
+    $Value
+}
+
+function GetCatalogStringListFromSection
+{
+    param
+    (
+        [Parameter(Mandatory)]
+        [HtmlAgilityPack.HtmlDocument]
+        $Document,
+
+        [Parameter(Mandatory)]
+        [string]
+        $Id
+    )
+
+    $Value = GetCatalogValueFromSection -Document $Document -Id $Id
+    if ([string]::IsNullOrWhiteSpace($Value))
+    {
+        return @()
+    }
+
+    $Value -split '\s*,\s*' | Where-Object -FilterScript { -not [string]::IsNullOrWhiteSpace($_) }
+}
+
+function GetCatalogValuesFromSection
+{
+    param
+    (
+        [Parameter(Mandatory)]
+        [HtmlAgilityPack.HtmlDocument]
+        $Document,
+
+        [Parameter(Mandatory)]
+        [string]
+        $Id
+    )
+
+    $Value = GetCatalogValueFromSection -Document $Document -Id $Id
+    if ([string]::IsNullOrWhiteSpace($Value))
+    {
+        return @()
+    }
+
+    @($Value -split '\s+,\s+' | Where-Object -FilterScript { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
+function GetCatalogLinksFromSection
+{
+    param
+    (
+        [Parameter(Mandatory)]
+        [HtmlAgilityPack.HtmlDocument]
+        $Document,
+
+        [Parameter(Mandatory)]
+        [string]
+        $Id
+    )
+
+    $Node = $Document.GetElementbyId($Id)
+    if ($null -eq $Node)
+    {
+        return @()
+    }
+
+    $LinkNodes = @($Node.SelectNodes('.//a[@href]')) | Where-Object -FilterScript { $null -ne $_ }
+    $Links = $LinkNodes | ForEach-Object -Process {
+        NormalizeCatalogText -Text $_.GetAttributeValue('href', '')
+    } | Where-Object -FilterScript { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+
+    if ($Links.Count -ge 1)
+    {
+        return $Links
+    }
+
+    $Value = GetCatalogValueFromSection -Document $Document -Id $Id
+    if ([string]::IsNullOrWhiteSpace($Value))
+    {
+        return @()
+    }
+
+    @($Value)
+}
+
+function GetCatalogItemsFromContainer
+{
+    param
+    (
+        [Parameter(Mandatory)]
+        [HtmlAgilityPack.HtmlDocument]
+        $Document,
+
+        [Parameter(Mandatory)]
+        [string]
+        $Id
+    )
+
+    $Node = $Document.GetElementbyId($Id)
+    if ($null -eq $Node)
+    {
+        return @()
+    }
+
+    @($Node.ChildNodes | Where-Object -FilterScript { $_.NodeType -eq [HtmlAgilityPack.HtmlNodeType]::Element } | ForEach-Object -Process {
+        NormalizeCatalogText -Text $_.InnerText
+    } | Where-Object -FilterScript { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
+function NormalizeCatalogText
+{
+    param
+    (
+        [AllowNull()]
+        [string]
+        $Text
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Text))
+    {
+        return $null
+    }
+
+    ([System.Net.WebUtility]::HtmlDecode($Text) -replace '\s+', ' ').Trim()
+}
+
+function ConvertCatalogSizeToBytes
+{
+    param
+    (
+        [AllowNull()]
+        [string]
+        $Size
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Size))
+    {
+        return $null
+    }
+
+    $Match = [regex]::Match($Size.Trim(), '^(?<Value>\d+(?:\.\d+)?)\s*(?<Unit>KB|MB|GB|TB|B)$', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if (!$Match.Success)
+    {
+        return $null
+    }
+
+    $NumericValue = [double]::Parse($Match.Groups['Value'].Value, [cultureinfo]::InvariantCulture)
+    $Multiplier = switch ($Match.Groups['Unit'].Value.ToUpperInvariant())
+    {
+        'KB' { 1KB }
+        'MB' { 1MB }
+        'GB' { 1GB }
+        'TB' { 1TB }
+        default { 1 }
+    }
+
+    [uint64][math]::Round($NumericValue * $Multiplier)
+}
 
 function ParseDownloadDialogResponse
 {
