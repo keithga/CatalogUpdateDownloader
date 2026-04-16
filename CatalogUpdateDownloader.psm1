@@ -426,7 +426,6 @@ function Get-CatalogUpdateDownloadInfo
 #>
 function Get-CatalogUpdateDetails
 {
-    [OutputType([CatalogUpdateDetails])]
     Param
     (
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
@@ -541,7 +540,6 @@ function Save-CatalogUpdate
 
 function ParseCatalogUpdateDetailsResponse
 {
-    [OutputType([CatalogUpdateDetails])]
     param
     (
         [Parameter(Mandatory)]
