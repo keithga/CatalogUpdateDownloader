@@ -79,3 +79,18 @@ UpdateId       : c9b07798-a1a6-43ae-b1ee-cae3f691504c
 ```
 
 Use `Get-CatalogUpdateDetails` for update metadata shown on the catalog details page, and `Get-CatalogUpdateDownloadInfo` when you need download URLs and file hashes.
+
+### Find and list update details device driver based on the hardware ID 
+```powershell
+PS C:\> Find-CatalogUpdate -SearchText 'PCI\VEN_10DE&DEV_2488' -verbose -First 1 | Get-DriverUpdateDetails
+
+Title          : NVIDIA Driver Update (32.0.15.9155)
+ReleaseDate    : 
+Size           : 
+Classification : Drivers
+Products       : 
+UpdateId       : fd05d34a-81e6-41f9-ac15-fb3c25a6e92a
+
+```
+
+Note: Pipe into `format-list *` to return all fields for a given driver.

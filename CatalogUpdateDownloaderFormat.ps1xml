@@ -48,5 +48,86 @@
             </ListEntries>
          </ListControl>
       </View>
+      <View>
+         <Name>DriverUpdateInfo</Name>
+         <ViewSelectedBy>
+            <TypeName>DriverUpdateDetails</TypeName>
+         </ViewSelectedBy>
+         <ListControl>
+            <ListEntries>
+               <ListEntry>
+                  <ListItems>
+                     <ListItem>
+                        <PropertyName>Title</PropertyName>
+                     </ListItem>
+                     <ListItem>
+                        <PropertyName>ReleaseDate</PropertyName>
+                     </ListItem>
+                     <ListItem>
+                        <Label>Size</Label>
+                        <ScriptBlock>$Bytes = $_.Size
+                           if     ($null  -eq $Bytes) {return ""}
+                           elseif ($Bytes -ge 1GB)    {return "$([System.Math]::Round($Bytes/1GB, 2)) GB"}
+                           elseif ($Bytes -ge 1MB)    {return "$([System.Math]::Round($Bytes/1MB, 2)) MB"}
+                           elseif ($Bytes -ge 1KB)    {return "$([System.Math]::Round($Bytes/1KB, 2)) KB"}
+                           elseif ($Bytes -ge 0)      {return "$Bytes B"}
+                           return ""
+                        </ScriptBlock>
+                     </ListItem>
+                     <ListItem>
+                        <PropertyName>Classification</PropertyName>
+                     </ListItem>
+                     <ListItem>
+                        <PropertyName>Products</PropertyName>
+                     </ListItem>
+                     <ListItem>
+                        <PropertyName>UpdateId</PropertyName>
+                     </ListItem>
+                  </ListItems>
+               </ListEntry>
+            </ListEntries>
+         </ListControl>
+      </View>
+      <View>
+         <Name>CatalogUpdateDetails</Name>
+         <ViewSelectedBy>
+            <TypeName>CatalogUpdateDetails</TypeName>
+         </ViewSelectedBy>
+         <ListControl>
+            <ListEntries>
+               <ListEntry>
+                  <ListItems>
+                     <ListItem>
+                        <PropertyName>Title</PropertyName>
+                     </ListItem>
+                     <ListItem>
+                        <PropertyName>ReleaseDate</PropertyName>
+                     </ListItem>
+                     <ListItem>
+                        <Label>Size</Label>
+                        <ScriptBlock>$Bytes = $_.Size
+                           if     ($null  -eq $Bytes) {return ""}
+                           elseif ($Bytes -ge 1GB)    {return "$([System.Math]::Round($Bytes/1GB, 2)) GB"}
+                           elseif ($Bytes -ge 1MB)    {return "$([System.Math]::Round($Bytes/1MB, 2)) MB"}
+                           elseif ($Bytes -ge 1KB)    {return "$([System.Math]::Round($Bytes/1KB, 2)) KB"}
+                           elseif ($Bytes -ge 0)      {return "$Bytes B"}
+                           return ""
+                        </ScriptBlock>
+                     </ListItem>
+                     <ListItem>
+                        <PropertyName>Classification</PropertyName>
+                     </ListItem>
+                     <ListItem>
+                        <PropertyName>Products</PropertyName>
+                     </ListItem>
+                     <ListItem>
+                        <PropertyName>UpdateId</PropertyName>
+                     </ListItem>
+                  </ListItems>
+               </ListEntry>
+            </ListEntries>
+         </ListControl>
+      </View>
+
    </ViewDefinitions>
 </Configuration>

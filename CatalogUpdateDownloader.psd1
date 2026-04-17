@@ -9,7 +9,7 @@
     Description            = 'Module for finding and downloading updates from catalog.update.microsoft.com.'
     PowerShellVersion      = '5.1'
     FormatsToProcess       = 'CatalogUpdateDownloaderFormat.ps1xml'
-    FunctionsToExport      = 'Find-CatalogUpdate', 'Get-CatalogUpdateDownloadInfo', 'Get-CatalogUpdateDetails', 'Save-CatalogUpdate'
+    FunctionsToExport      = 'Find-CatalogUpdate', 'Get-CatalogUpdateDownloadInfo', 'Get-CatalogUpdateDetails', 'Get-DriverUpdateDetails', 'Save-CatalogUpdate'
     CmdletsToExport        = @()
     VariablesToExport      = @()
     AliasesToExport        = @()
