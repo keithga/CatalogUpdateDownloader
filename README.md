@@ -82,7 +82,7 @@ Use `Get-CatalogUpdateDetails` for update metadata shown on the catalog details 
 
 ### Find and list update details device driver based on the hardware ID 
 ```powershell
-PS C:\> Find-CatalogUpdate -SearchText 'PCI\VEN_10DE&DEV_2488' -verbose -First 1 | Get-DriverUpdateDetails
+PS C:\> Find-CatalogUpdate -SearchText 'PCI\VEN_10DE&DEV_2488' -verbose -First 1 | Get-CatalogUpdateDetails
 
 Title          : NVIDIA Driver Update (32.0.15.9155)
 ReleaseDate    : 

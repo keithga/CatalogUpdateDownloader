@@ -1,6 +1,6 @@
 ﻿@{
     RootModule             = "CatalogUpdateDownloader.psm1"
-    ModuleVersion          = "1.1.0"
+    ModuleVersion          = "1.1.2"
     CompatiblePSEditions   = @("Core", "Desktop")
     GUID                   = '5dce3ccf-0494-44c7-b715-569052152501'
     Author                 = 'MartinGC94'
@@ -9,7 +9,7 @@
     Description            = 'Module for finding and downloading updates from catalog.update.microsoft.com.'
     PowerShellVersion      = '5.1'
     FormatsToProcess       = 'CatalogUpdateDownloaderFormat.ps1xml'
-    FunctionsToExport      = 'Find-CatalogUpdate', 'Get-CatalogUpdateDownloadInfo', 'Get-CatalogUpdateDetails', 'Get-DriverUpdateDetails', 'Save-CatalogUpdate'
+    FunctionsToExport      = 'Find-CatalogUpdate', 'Get-CatalogUpdateDownloadInfo', 'Get-CatalogUpdateDetails', 'Save-CatalogUpdate'
     CmdletsToExport        = @()
     VariablesToExport      = @()
     AliasesToExport        = @()
