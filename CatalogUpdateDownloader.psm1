@@ -526,7 +526,14 @@ function Get-CatalogUpdateDetails
             }
             catch
             {
-                Write-Error -Message "Failed to retrieve update details for update: $ID. $($_.Exception.Message)"
+                $Record = [System.Management.Automation.ErrorRecord]::new(
+                    [System.Exception]::new("Failed to retrieve update details for update: $ID. $($_.Exception.Message)", $_.Exception),
+                    "UpdateRetrievalError",
+                    [System.Management.Automation.ErrorCategory]::NotSpecified,
+                    $ID
+                )
+                $PSCmdlet.WriteError($Record)
+                continue
                 continue
             }
 
