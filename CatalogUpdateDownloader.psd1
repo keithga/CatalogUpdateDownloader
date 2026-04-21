@@ -21,7 +21,8 @@
              ProjectUri   = 'https://github.com/MartinGC94/CatalogUpdateDownloader'
              ReleaseNotes = @'
 1.1.0:
-    Add Get-CatalogUpdateDetails for retrieving update details metadata from the Microsoft Update Catalog.
+    Add Get-CatalogUpdateDetails for retrieving update details metadata from the Microsoft Update Catalog. (Thanks @keithga )
+    Added escaping for the -SearchText parameter in Find-CatalogUpdate so special characters get escaped properly. (Thanks @keithga )
 1.0.0:
     Initial release
 '@
