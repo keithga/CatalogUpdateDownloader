@@ -1,6 +1,6 @@
 ﻿@{
     RootModule             = "CatalogUpdateDownloader.psm1"
-    ModuleVersion          = "1.1.2"
+    ModuleVersion          = "1.1.0"
     CompatiblePSEditions   = @("Core", "Desktop")
     GUID                   = '5dce3ccf-0494-44c7-b715-569052152501'
     Author                 = 'MartinGC94'
