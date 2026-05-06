@@ -37,8 +37,7 @@ class CatalogUpdateDetails
 {
     [string] $Title
     [datetime] $LastModified
-    [string] $Size
-    [uint64] $SizeBytes
+    [uint64] $Size
     [string] $UpdateId
 
     [string] $Description
@@ -73,8 +72,7 @@ class DriverUpdateDetails
 {
     [string] $Title
     [datetime] $LastModified
-    [string] $Size
-    [uint64] $SizeBytes
+    [uint64] $Size
     [string] $UpdateId
 
     [string] $Description
@@ -340,7 +338,7 @@ function Find-CatalogUpdate
         {
             'Classification' {'ClassificationComputed'}
             'Date' {'DateComputed'}
-            'Size' {'SizeInBytes'}
+            'Size' {'Size'}
             default {$_}
         }
 
@@ -379,7 +377,7 @@ function Find-CatalogUpdate
 
         $Document = [HtmlAgilityPack.HtmlDocument]::new()
         $Document.LoadHtml($Response.Content)
-        $Document.GetElementbyId('ctl00_catalogBody_searchString').InnerText.ToString() | write-verbose
+        $Document.GetElementbyId('ctl00_catalogBody_searchString').InnerText.ToString() | Write-Verbose
         $Table = $Document.GetElementbyId('ctl00_catalogBody_updateMatches')
         if ($null -eq $Table)
         {
@@ -642,7 +640,7 @@ function ParseCatalogUpdateDetailsResponse
     $Title = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_titleText'
     if ([string]::IsNullOrWhiteSpace($Title))
     {
-        return $null
+        return
     }
 
     $LastModifiedText = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_date'
@@ -667,8 +665,7 @@ function ParseCatalogUpdateDetailsResponse
     $Common = [ordered]@{
         Title                       = $Title
         LastModified                = $LastModified
-        Size                        = $Size
-        SizeBytes                   = ConvertCatalogSizeToBytes -Size $Size
+        Size                        = ConvertCatalogSizeToBytes -Size $Size
         UpdateId                    = $ResolvedUpdateId
 
         Description                 = GetCatalogNodeText -Document $Document -Id 'ScopedViewHandler_desc'
@@ -718,13 +715,13 @@ function ParseCatalogUpdateDetailsResponse
 
             SupersededBy                = GetCatalogItemsFromContainer -Document $Document -Id 'supersededbyInfo'
             Supersedes                  = GetCatalogItemsFromContainer -Document $Document -Id 'supersedesInfo'
-            RelatedUpdates              = GetCatalogItemsFromContainer -Document $Document -Id 'relatedUpdatesInfo'
+          # RelatedUpdates              = GetCatalogItemsFromContainer -Document $Document -Id 'relatedUpdatesInfo'
         }
         [CatalogUpdateDetails]($Common + $OSUpdates)
     }
     else 
     {
-        write-warning 'Could not determine if the update is a driver or OS update.'
+        Write-Warning 'Could not determine if the update is a driver or OS update.'
         [CatalogUpdateDetails]($Common)
     }
 
@@ -746,7 +743,7 @@ function GetCatalogNodeText
     $Node = $Document.GetElementbyId($Id)
     if ($null -eq $Node)
     {
-        return $null
+        return
     }
 
     NormalizeCatalogText -Text $Node.InnerText
@@ -768,7 +765,7 @@ function GetCatalogValueFromSection
     $Node = $Document.GetElementbyId($Id)
     if ($null -eq $Node)
     {
-        return $null
+        return
     }
 
     $Value = NormalizeCatalogText -Text $Node.InnerText
@@ -784,7 +781,7 @@ function GetCatalogValueFromSection
 
     if ([string]::IsNullOrWhiteSpace($Value))
     {
-        return $null
+        return
     }
 
     $Value
@@ -806,7 +803,7 @@ function GetCatalogStringListFromSection
     $Value = GetCatalogValueFromSection -Document $Document -Id $Id
     if ([string]::IsNullOrWhiteSpace($Value))
     {
-        return @()
+        return
     }
 
     $Value -split '\s*,\s*' | Where-Object -FilterScript { -not [string]::IsNullOrWhiteSpace($_) }
@@ -828,7 +825,7 @@ function GetCatalogValuesFromSection
     $Value = GetCatalogValueFromSection -Document $Document -Id $Id
     if ([string]::IsNullOrWhiteSpace($Value))
     {
-        return @()
+        return
     }
 
     @($Value -split '\s+,\s+' | Where-Object -FilterScript { -not [string]::IsNullOrWhiteSpace($_) })
@@ -850,7 +847,7 @@ function GetCatalogLinksFromSection
     $Node = $Document.GetElementbyId($Id)
     if ($null -eq $Node)
     {
-        return @()
+        return
     }
 
     $LinkNodes = @($Node.SelectNodes('.//a[@href]')) | Where-Object -FilterScript { $null -ne $_ }
@@ -866,7 +863,7 @@ function GetCatalogLinksFromSection
     $Value = GetCatalogValueFromSection -Document $Document -Id $Id
     if ([string]::IsNullOrWhiteSpace($Value))
     {
-        return @()
+        return
     }
 
     @($Value)
@@ -888,7 +885,7 @@ function GetCatalogItemsFromContainer
     $Node = $Document.GetElementbyId($Id)
     if ($null -eq $Node)
     {
-        return @()
+        return
     }
 
     @($Node.ChildNodes | Where-Object -FilterScript { $_.NodeType -eq [HtmlAgilityPack.HtmlNodeType]::Element } | ForEach-Object -Process {
@@ -907,7 +904,7 @@ function NormalizeCatalogText
 
     if ([string]::IsNullOrWhiteSpace($Text))
     {
-        return $null
+        return
     }
 
     ([System.Net.WebUtility]::HtmlDecode($Text) -replace '\s+', ' ').Trim()
@@ -924,13 +921,13 @@ function ConvertCatalogSizeToBytes
 
     if ([string]::IsNullOrWhiteSpace($Size))
     {
-        return $null
+        return
     }
 
     $Match = [regex]::Match($Size.Trim(), '^(?<Value>\d+(?:\.\d+)?)\s*(?<Unit>KB|MB|GB|TB|B)$', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
     if (!$Match.Success)
     {
-        return $null
+        return
     }
 
     $NumericValue = [double]::Parse($Match.Groups['Value'].Value, [cultureinfo]::InvariantCulture)
